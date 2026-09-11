@@ -28,8 +28,8 @@ require catcryptCore from "../CatCrypt-core"
 require catcryptVcvio from "../catcrypt-vcvio"
 
 require ArkLib from git
-  "https://github.com/Verified-zkEVM/ArkLib" @ "v4.32.2"
+  "https://github.com/Verified-zkEVM/ArkLib" @ "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
 
 -- mathlib last so its pinned transitive deps win, matching the shared olean cache.
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4" @ "v4.32.0"
+  "https://github.com/leanprover-community/mathlib4" @ "v4.33.1"
