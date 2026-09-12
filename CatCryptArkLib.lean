@@ -3,12 +3,14 @@ Copyright (c) 2024 CatCrypt Contributors. All rights reserved.
 Released under MIT license as described in the file LICENSE.
 Authors: CatCrypt Contributors
 -/
-import CatCryptCore.Core.Code
-import CatCryptCore.Crypto.Advantage
-import CatCryptCore.Crypto.SDist
-import CatCryptCore.Prob.SDistr
-import CatCryptVCVio.Relational
-import ArkLib.OracleReduction.Security.Basic
+module
+
+public import CatCryptCore.Core.Code
+public import CatCryptCore.Crypto.Advantage
+public import CatCryptCore.Crypto.SDist
+public import CatCryptCore.Prob.SDistr
+public import CatCryptVCVio.Relational
+public import ArkLib.OracleReduction.Security.Basic
 
 /-!
 # ArkLib Bridge
@@ -54,6 +56,8 @@ The transfer reuses the VCVio bridge: ArkLib's soundness bound is a
 
 open CatCrypt.Core CatCrypt.Prob CatCrypt.Crypto
 open scoped ENNReal
+
+@[expose] public section
 
 namespace CatCrypt.Crypto.Bridges.ArkLib
 
@@ -189,7 +193,7 @@ theorem argumentSoundness_of_probEvent {Adv β : Type}
 
 /-! ## Transfer from ArkLib's own `Soundness.Verifier.soundness`
 
-The genuine link: ArkLib's soundness predicate — `∀` prover / input choices with
+ArkLib's soundness predicate — `∀` prover / input choices with
 `stmtIn ∉ langIn`, the honest execution lands in `langOut` with probability at
 most `soundnessError` — instantiates `argumentSoundness_of_probEvent`, giving an
 `ArgumentSoundness` bound on the lifted execution game. -/
