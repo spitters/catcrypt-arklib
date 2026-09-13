@@ -4,6 +4,7 @@ on:
   push:
     branches: [master, main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
@@ -36,6 +37,16 @@ jobs:
         run: |
           set -euo pipefail
           lake build 2>&1 | tee build.log
+
+      - name: Guard — no axiom declarations
+        run: |
+          set -euo pipefail
+          found="$(git grep -nE '^[[:space:]]*axiom[[:space:]]' -- 'CatCryptArkLib.lean' 'CatCryptArkLib' || true)"
+          if [ -n "$found" ]; then
+            echo "::error::The package declares no axioms; found:"
+            echo "$found"
+            exit 1
+          fi
 
       - name: Guard — no native_decide (keeps the trust base off ofReduceBool)
         run: |
