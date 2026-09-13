@@ -23,9 +23,11 @@ lean_lib CatCryptArkLib where
   -- `CatCrypt.Crypto.Bridges.ArkLibTypes` shims re-export this package.
   globs := #[.andSubmodules `CatCryptArkLib]
 
-require catcryptCore from "../CatCrypt-core"
+require catcryptCore from git
+  "https://github.com/spitters/CatCrypt-core.git" @ "2adfac7c5162ab0e89c9b494d53ee4b2fdc75613"
 
-require catcryptVcvio from "../catcrypt-vcvio"
+require catcryptVcvio from git
+  "https://github.com/spitters/catcrypt-vcvio.git" @ "75e2e38c55b6d9340465407a2d45f3c17c01ad9d"
 
 require ArkLib from git
   "https://github.com/Verified-zkEVM/ArkLib" @ "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"

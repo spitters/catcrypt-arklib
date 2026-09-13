@@ -29,21 +29,27 @@
     },
     {
       "configFile": "lakefile.lean",
-      "dir": "../catcrypt-vcvio",
       "inherited": false,
       "manifestFile": "lake-manifest.json",
       "name": "catcryptVcvio",
       "scope": "",
-      "type": "path"
+      "type": "git",
+      "url": "https://github.com/spitters/catcrypt-vcvio.git",
+      "rev": "75e2e38c55b6d9340465407a2d45f3c17c01ad9d",
+      "inputRev": "75e2e38c55b6d9340465407a2d45f3c17c01ad9d",
+      "subDir": null
     },
     {
       "configFile": "lakefile.lean",
-      "dir": "../CatCrypt-core",
       "inherited": false,
       "manifestFile": "lake-manifest.json",
       "name": "catcryptCore",
       "scope": "",
-      "type": "path"
+      "type": "git",
+      "url": "https://github.com/spitters/CatCrypt-core.git",
+      "rev": "2adfac7c5162ab0e89c9b494d53ee4b2fdc75613",
+      "inputRev": "2adfac7c5162ab0e89c9b494d53ee4b2fdc75613",
+      "subDir": null
     },
     {
       "configFile": "lakefile.toml",

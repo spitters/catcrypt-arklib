@@ -42,10 +42,8 @@ The package declares no axioms and uses no `native_decide`.
 
 Pinned in `lakefile.lean` and `lake-manifest.json`:
 
-- [CatCrypt Core](https://github.com/spitters/CatCrypt-core), required from the
-  sibling directory `../CatCrypt-core`
-- [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio), required from the
-  sibling directory `../catcrypt-vcvio`
+- [CatCrypt Core](https://github.com/spitters/CatCrypt-core) at commit `2adfac7`
+- [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio) at commit `75e2e38`
 - [ArkLib](https://github.com/Verified-zkEVM/ArkLib) at commit `dca90385fb`
 - [VCV-io](https://github.com/Verified-zkEVM/VCV-io), at the revision resolved
   through ArkLib and catcrypt-vcvio (`f9dc47d9da` in `lake-manifest.json`)
