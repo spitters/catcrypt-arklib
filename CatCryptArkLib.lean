@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2024 CatCrypt Contributors. All rights reserved.
+Copyright (c) 2026 CatCrypt Contributors. All rights reserved.
 Released under MIT license as described in the file LICENSE.
 Authors: CatCrypt Contributors
 -/
@@ -28,12 +28,19 @@ IOR ──BCS(commitment)──▶ IR ──Fiat-Shamir(ROM)──▶ Non-intera
 ArkLib is a real dependency (`require ArkLib`), sharing this library's VCVio
 and mathlib pins. This file provides CatCrypt-native soundness vocabulary
 (`ArgumentSoundness`, `KnowledgeSoundness`) with reduction-composition lemmas,
-and a **verified transfer** from ArkLib's own `Soundness.Verifier.soundness`
-predicate into `ArgumentSoundness`.
+and an equivalence between ArkLib's `Verifier.soundness` predicate and
+`ArgumentSoundness` of an explicit CatCrypt game
+(`verifierSoundness_iff_argumentSoundness`).
 
-The transfer reuses the VCVio bridge: ArkLib's soundness bound is a
-`Pr[· | ProbComp]` (VCVio `probEvent`) in `ℝ≥0`, and
-`VCVioBridge.prTrue_probCompLift` transports it into `prTrue (probCompLift ·)`.
+In that game the adversary (`VerifierSoundnessAdv`) is a cheating prover
+together with its witness types, a witness and an input statement outside
+`langIn`; the game (`verifierSoundnessGame`) runs ArkLib's reduction and
+outputs `true` exactly when the execution does not fail and the verifier's
+output statement lies in `langOut`. ArkLib's bound is a `probEvent` over an
+`OptionT ProbComp` computation; `probEvent_optionT_eq_probOutput_any` rewrites it
+as `Pr[= true | ·]` of a `ProbComp Bool` computation in which failure maps to
+`false`, and `VCVioBridge.prTrue_probCompLift` transports that into
+`prTrue (probCompLift ·)`.
 
 ## Main definitions
 
@@ -41,11 +48,17 @@ The transfer reuses the VCVio bridge: ArkLib's soundness bound is a
 * `KnowledgeSoundness` — ∃ universal extractor. ∀ adversary. extraction fails ≤ ε
 * Reduction composition: `argumentSoundness_reduce`, `argumentSoundness_add_reduce`,
   `argumentSoundness_amplify`
+* `VerifierSoundnessAdv`, `verifierSoundnessGame` — ArkLib's soundness experiment
+  as a CatCrypt game
+* `verifierSoundness_iff_argumentSoundness`, `argumentSoundness_of_verifierSoundness`
 
 ## Design Notes
 
 * ArkLib uses `ℝ≥0` (NNReal) for error bounds; CatCrypt uses `ℝ≥0∞` (ENNReal).
-  The coercion `(↑· : ℝ≥0 → ℝ≥0∞)` is monotone, so bounds transfer.
+  The transfer states the CatCrypt bound as the coercion `(ε : ℝ≥0∞)` of ArkLib's
+  `ε : ℝ≥0`; the two bounds are equivalent.
+* `ArgumentSoundness` is universe-polymorphic in the adversary type, since an
+  ArkLib prover carries its state types and lives in `Type 1`.
 * `KnowledgeSoundness` uses ∃E ∀A (universal extractor) matching ArkLib's form.
 
 ## References
@@ -55,7 +68,7 @@ The transfer reuses the VCVio bridge: ArkLib's soundness bound is a
 -/
 
 open CatCrypt.Core CatCrypt.Prob CatCrypt.Crypto
-open scoped ENNReal
+open scoped ENNReal NNReal
 
 @[expose] public section
 
@@ -63,9 +76,10 @@ namespace CatCrypt.Crypto.Bridges.ArkLib
 
 /-! ## Abstract Soundness Predicates -/
 
-/-- Abstract soundness: all adversaries succeed with prob ≤ ε.
-    Mirrors ArkLib's `Verifier.soundness`. -/
-def ArgumentSoundness {Adv : Type} (ε : ℝ≥0∞)
+/-- Abstract soundness: every adversary wins `game` with probability at most `ε`.
+    ArkLib's `Verifier.soundness` is equivalent to this predicate for
+    `verifierSoundnessGame` (`verifierSoundness_iff_argumentSoundness`). -/
+def ArgumentSoundness {Adv : Type*} (ε : ℝ≥0∞)
     (game : Adv → SPComp Bool) : Prop :=
   ∀ A, prTrue (game A) CatCrypt.Core.Heap.empty ≤ ε
 
@@ -91,7 +105,7 @@ theorem KnowledgeSoundness.toWeak {Adv Extractor : Type} {ε : ℝ≥0∞}
 /-! ## Monotonicity -/
 
 @[aesop safe apply]
-theorem argumentSoundness_mono {Adv : Type} {g : Adv → SPComp Bool}
+theorem argumentSoundness_mono {Adv : Type*} {g : Adv → SPComp Bool}
     {ε₁ ε₂ : ℝ≥0∞} (h : ε₁ ≤ ε₂) (hs : ArgumentSoundness ε₁ g) :
     ArgumentSoundness ε₂ g :=
   fun A => le_trans (hs A) h
@@ -111,7 +125,7 @@ functions and bounds. -/
 /-- Reduction composition: if game B reduces to game A via `reduce`,
     then soundness of A implies soundness of B. -/
 @[aesop safe apply]
-theorem argumentSoundness_reduce {Adv₁ Adv₂ : Type}
+theorem argumentSoundness_reduce {Adv₁ Adv₂ : Type*}
     {game₁ : Adv₁ → SPComp Bool} {game₂ : Adv₂ → SPComp Bool}
     (ε : ℝ≥0∞) (reduce : Adv₂ → Adv₁)
     (h_reduce : ∀ A, prTrue (game₂ A) CatCrypt.Core.Heap.empty ≤ prTrue (game₁ (reduce A)) CatCrypt.Core.Heap.empty)
@@ -122,7 +136,7 @@ theorem argumentSoundness_reduce {Adv₁ Adv₂ : Type}
 /-- Additive composition via reductions: game reduces to sum of two sub-games.
     This captures BCS-style composition (IOR error + binding error). -/
 @[aesop safe apply]
-theorem argumentSoundness_add_reduce {Adv Adv₁ Adv₂ : Type}
+theorem argumentSoundness_add_reduce {Adv Adv₁ Adv₂ : Type*}
     {game : Adv → SPComp Bool} {game₁ : Adv₁ → SPComp Bool} {game₂ : Adv₂ → SPComp Bool}
     {ε₁ ε₂ : ℝ≥0∞}
     (reduce₁ : Adv → Adv₁) (reduce₂ : Adv → Adv₂)
@@ -136,7 +150,7 @@ theorem argumentSoundness_add_reduce {Adv Adv₁ Adv₂ : Type}
 /-- Multiplicative amplification via reduction: game reduces to q copies
     of a sub-game. This captures Fiat-Shamir-style amplification. -/
 @[aesop safe apply]
-theorem argumentSoundness_amplify {Adv₁ Adv₂ : Type}
+theorem argumentSoundness_amplify {Adv₁ Adv₂ : Type*}
     {game₁ : Adv₁ → SPComp Bool} {game₂ : Adv₂ → SPComp Bool}
     {ε : ℝ≥0∞} (q : ℝ≥0∞)
     (reduce : Adv₂ → Adv₁)
@@ -145,38 +159,34 @@ theorem argumentSoundness_amplify {Adv₁ Adv₂ : Type}
     ArgumentSoundness (q * ε) game₂ :=
   fun A => le_trans (h_amp A) (by gcongr; exact h _)
 
-/-! ## NNReal ↔ ENNReal Bridge
-
-ArkLib uses `ℝ≥0` (NNReal) for error bounds. These lemmas convert
-ArkLib-style NNReal bounds to CatCrypt's ENNReal bounds. -/
-
-/-- Transfer an NNReal bound to ENNReal. -/
-theorem argumentSoundness_coe {Adv : Type} {game : Adv → SPComp Bool}
-    {ε : NNReal} (h : ∀ A, prTrue (game A) CatCrypt.Core.Heap.empty ≤ (↑ε : ℝ≥0∞)) :
-    ArgumentSoundness (↑ε : ℝ≥0∞) game := h
-
-/-! ## Transfer from VCVio / ArkLib probability bounds
+/-! ## Transfer from VCVio probability bounds
 
 These connect `ArgumentSoundness` to `ProbComp`-level bounds (VCVio `probOutput`
-/ `probEvent`), the form ArkLib's soundness predicate takes. The lift is the
-VCVio bridge's `probCompLift`; the key identity is `prTrue_probCompLift`. -/
+/ `probEvent`). The lift is the VCVio bridge's `probCompLift`; the key identity
+is `prTrue_probCompLift`. -/
 
 open CatCrypt.Crypto.VCVioBridge
 
+/-- `ArgumentSoundness` of a `probCompLift`ed game is equivalent to the
+    per-adversary bound `Pr[= true | game A] ≤ ε` on the `ProbComp Bool` game. -/
+theorem argumentSoundness_probCompLift_iff {Adv : Type*}
+    (game : Adv → ProbComp Bool) {ε : ℝ≥0∞} :
+    ArgumentSoundness ε (fun A => probCompLift (game A)) ↔
+      ∀ A, Pr[= true | game A] ≤ ε := by
+  simp only [ArgumentSoundness, prTrue_probCompLift]
+
 /-- A per-adversary `Pr[= true | game A] ≤ ε` bound on a `ProbComp Bool` game
     lifts to `ArgumentSoundness` of the `probCompLift`ed game. -/
-theorem argumentSoundness_probCompLift {Adv : Type}
+theorem argumentSoundness_probCompLift {Adv : Type*}
     (game : Adv → ProbComp Bool) {ε : ℝ≥0∞}
     (h : ∀ A, Pr[= true | game A] ≤ ε) :
-    ArgumentSoundness ε (fun A => probCompLift (game A)) := by
-  intro A
-  rw [prTrue_probCompLift]
-  exact h A
+    ArgumentSoundness ε (fun A => probCompLift (game A)) :=
+  (argumentSoundness_probCompLift_iff game).2 h
 
-/-- A per-adversary `probEvent` bound `Pr[pred | exec A] ≤ ε` — the shape ArkLib's
-    `Soundness.Verifier.soundness` takes — lifts to `ArgumentSoundness` of the
-    `Bool`-ified, `probCompLift`ed execution. -/
-theorem argumentSoundness_of_probEvent {Adv β : Type}
+/-- A per-adversary `probEvent` bound `Pr[pred | exec A] ≤ ε` on a `ProbComp`
+    execution lifts to `ArgumentSoundness` of the `Bool`-valued, `probCompLift`ed
+    execution. -/
+theorem argumentSoundness_of_probEvent {Adv : Type*} {β : Type}
     (pred : β → Prop) [DecidablePred pred]
     (exec : Adv → ProbComp β) {ε : ℝ≥0∞}
     (h : ∀ A, Pr[pred | exec A] ≤ ε) :
@@ -191,12 +201,27 @@ theorem argumentSoundness_of_probEvent {Adv β : Type}
   rw [hpred]
   exact h A
 
-/-! ## Transfer from ArkLib's own `Soundness.Verifier.soundness`
+/-- The probability of an event `p` in an `OptionT` computation equals the
+    probability that the underlying computation returns `some a` with `p a`,
+    written as `Pr[= true | ·]` of the `Bool`-valued map in which failure
+    (`none`) is sent to `false`. -/
+theorem probEvent_optionT_eq_probOutput_any {m : Type → Type} [Monad m] [LawfulMonad m]
+    [MonadLiftT m SPMF] [LawfulMonadLiftT m SPMF] {α : Type}
+    (mx : OptionT m α) (p : α → Prop) [DecidablePred p] :
+    Pr[p | mx] = Pr[= true | (fun o : Option α => o.any (fun a => decide (p a))) <$> mx.run] := by
+  rw [← probEvent_true_eq_probOutput, probEvent_map]
+  simp only [probEvent_eq_tsum_indicator, OptionT.probOutput_eq,
+    tsum_option _ ENNReal.summable, Set.indicator_apply]
+  simp
 
-ArkLib's soundness predicate — `∀` prover / input choices with
-`stmtIn ∉ langIn`, the honest execution lands in `langOut` with probability at
-most `soundnessError` — instantiates `argumentSoundness_of_probEvent`, giving an
-`ArgumentSoundness` bound on the lifted execution game. -/
+/-! ## Transfer from ArkLib's `Verifier.soundness`
+
+ArkLib's soundness experiment, stated as a CatCrypt game. The adversary chooses
+the witness types, a witness, a prover and an input statement outside `langIn`;
+the game runs ArkLib's reduction with the given verifier, maps a failed
+execution to `false`, and otherwise outputs whether the verifier's output
+statement lies in `langOut`. For a proof system (`langOut` the accepting
+statements) the winning event is acceptance of a false statement. -/
 
 section ArkLibSoundness
 open OracleComp OracleSpec ProtocolSpec
@@ -207,11 +232,78 @@ variable {ι : Type} {oSpec : OracleSpec ι}
   {n : ℕ} {pSpec : ProtocolSpec n} [∀ i, SampleableType (pSpec.Challenge i)]
   {σ : Type} (init : ProbComp σ) (impl : QueryImpl oSpec (StateT σ ProbComp))
 
+/-- An adversary in ArkLib's soundness experiment for `verifier`: witness types,
+    a witness, a (cheating) prover, and an input statement outside `langIn`. -/
+structure VerifierSoundnessAdv (langIn : Set StmtIn)
+    (verifier : Verifier oSpec StmtIn StmtOut pSpec) where
+  /-- The prover's input witness type. -/
+  WitIn : Type
+  /-- The prover's output witness type. -/
+  WitOut : Type
+  /-- The prover's input witness. -/
+  witIn : WitIn
+  /-- The cheating prover. -/
+  prover : Prover oSpec StmtIn WitIn StmtOut WitOut pSpec
+  /-- The input statement. -/
+  stmtIn : StmtIn
+  /-- The input statement lies outside the input language. -/
+  stmtIn_not_mem : stmtIn ∉ langIn
+
+/-- The execution of ArkLib's reduction in the soundness experiment, as the
+    `OptionT ProbComp` computation appearing in `Verifier.soundness`: the oracle
+    implementation `impl` extended with uniform challenges, run from an initial
+    state drawn from `init`. -/
+noncomputable def verifierSoundnessRun {langIn : Set StmtIn}
+    {verifier : Verifier oSpec StmtIn StmtOut pSpec} (A : VerifierSoundnessAdv langIn verifier) :
+    OptionT ProbComp ((FullTranscript pSpec × StmtOut × A.WitOut) × StmtOut) :=
+  let pImpl : QueryImpl (oSpec + [pSpec.Challenge]ₒ) (StateT σ ProbComp) :=
+    impl.addLift challengeQueryImpl
+  letI reduction := Reduction.mk A.prover verifier
+  OptionT.mk do (simulateQ pImpl (reduction.run A.stmtIn A.witIn).run).run' (← init)
+
+/-- ArkLib's soundness experiment as a `ProbComp Bool` game: `true` exactly when
+    the execution does not fail and the verifier's output statement lies in
+    `langOut`. -/
+noncomputable def verifierSoundnessGame {langIn : Set StmtIn} (langOut : Set StmtOut)
+    {verifier : Verifier oSpec StmtIn StmtOut pSpec} (A : VerifierSoundnessAdv langIn verifier) :
+    ProbComp Bool :=
+  (fun o => o.any (fun r => decide (r.2 ∈ langOut))) <$> (verifierSoundnessRun init impl A).run
+
+/-- ArkLib's `Verifier.soundness` with error `ε : ℝ≥0` is equivalent to
+    `ArgumentSoundness (ε : ℝ≥0∞)` of the lifted `verifierSoundnessGame`, with
+    adversaries `VerifierSoundnessAdv langIn verifier`. -/
+theorem verifierSoundness_iff_argumentSoundness
+    (langIn : Set StmtIn) (langOut : Set StmtOut)
+    (verifier : Verifier oSpec StmtIn StmtOut pSpec) (ε : ℝ≥0) :
+    Verifier.soundness init impl langIn langOut verifier ε ↔
+      ArgumentSoundness (ε : ℝ≥0∞)
+        (fun A : VerifierSoundnessAdv langIn verifier =>
+          probCompLift (verifierSoundnessGame init impl langOut A)) := by
+  rw [argumentSoundness_probCompLift_iff]
+  constructor
+  · intro h A
+    unfold verifierSoundnessGame
+    rw [← probEvent_optionT_eq_probOutput_any]
+    exact h A.WitIn A.WitOut A.witIn A.prover A.stmtIn A.stmtIn_not_mem
+  · intro h WitIn WitOut witIn prover stmtIn hstmt
+    have hA := h ⟨WitIn, WitOut, witIn, prover, stmtIn, hstmt⟩
+    unfold verifierSoundnessGame at hA
+    rw [← probEvent_optionT_eq_probOutput_any] at hA
+    exact hA
+
+/-- A proof of ArkLib's `Verifier.soundness` with error `ε : ℝ≥0` gives
+    `ArgumentSoundness (ε : ℝ≥0∞)` of the lifted `verifierSoundnessGame`. -/
+theorem argumentSoundness_of_verifierSoundness
+    {langIn : Set StmtIn} {langOut : Set StmtOut}
+    {verifier : Verifier oSpec StmtIn StmtOut pSpec} {ε : ℝ≥0}
+    (h : Verifier.soundness init impl langIn langOut verifier ε) :
+    ArgumentSoundness (ε : ℝ≥0∞)
+      (fun A : VerifierSoundnessAdv langIn verifier =>
+        probCompLift (verifierSoundnessGame init impl langOut A)) :=
+  (verifierSoundness_iff_argumentSoundness init impl langIn langOut verifier ε).1 h
+
 /-- Monotonicity of ArkLib's `Verifier.soundness` in the error bound: a soundness
-    proof with error `ε₁` is also a soundness proof for any `ε₂ ≥ ε₁`. This is the
-    predicate-level bridge lemma over ArkLib's own definition; the transfer of a
-    single bound into `ArgumentSoundness` is `argumentSoundness_of_probEvent`
-    applied to `h WitIn WitOut witIn prover stmtIn hstmt`. -/
+    proof with error `ε₁` is also a soundness proof for any `ε₂ ≥ ε₁`. -/
 theorem verifierSoundness_mono
     {langIn : Set StmtIn} {langOut : Set StmtOut}
     {verifier : Verifier oSpec StmtIn StmtOut pSpec} {ε₁ ε₂ : NNReal} (hle : ε₁ ≤ ε₂)
@@ -221,13 +313,5 @@ theorem verifierSoundness_mono
   exact le_trans (h WitIn WitOut witIn prover stmtIn hstmt) (by exact_mod_cast hle)
 
 end ArkLibSoundness
-
-#print axioms argumentSoundness_mono
-#print axioms argumentSoundness_reduce
-#print axioms argumentSoundness_add_reduce
-#print axioms argumentSoundness_amplify
-#print axioms argumentSoundness_probCompLift
-#print axioms argumentSoundness_of_probEvent
-#print axioms verifierSoundness_mono
 
 end CatCrypt.Crypto.Bridges.ArkLib
