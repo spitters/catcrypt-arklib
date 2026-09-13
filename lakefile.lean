@@ -21,7 +21,9 @@ lean_lib CatCryptArkLib where
   -- out of CatCryptCore so core carries no ArkLib dependency. It transports ArkLib bounds
   -- through the VCVio bridge, hence the `catcryptVcvio` dep. Downstream
   -- `CatCrypt.Crypto.Bridges.ArkLibTypes` shims re-export this package.
-  globs := #[.andSubmodules `CatCryptArkLib]
+  -- The library is the single module `CatCryptArkLib`; git tracks no empty
+  -- directory, so a submodule glob fails in a clean clone.
+  globs := #[.one `CatCryptArkLib]
 
 require catcryptCore from git
   "https://github.com/spitters/CatCrypt-core.git" @ "2adfac7c5162ab0e89c9b494d53ee4b2fdc75613"
