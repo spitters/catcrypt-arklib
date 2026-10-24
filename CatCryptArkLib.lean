@@ -36,10 +36,10 @@ In that game the adversary (`VerifierSoundnessAdv`) is a cheating prover
 together with its witness types, a witness and an input statement outside
 `langIn`; the game (`verifierSoundnessGame`) runs ArkLib's reduction and
 outputs `true` exactly when the execution does not fail and the verifier's
-output statement lies in `langOut`. ArkLib's bound is a `probEvent` over an
-`OptionT ProbComp` computation; `probEvent_optionT_eq_probOutput_any` rewrites it
-as `Pr[= true | ·]` of a `ProbComp Bool` computation in which failure maps to
-`false`, and `VCVioBridge.prTrue_probCompLift` transports that into
+output statement lies in `langOut`. ArkLib's bound is an event probability
+`Pr{…}[…]` over an `OptionT ProbComp` computation;
+`probEvent_optionT_eq_probOutput_any` rewrites it as the mass `𝒟[·] {true}` of a
+`ProbComp Bool` computation in which failure maps to `false`, and `VCVioBridge.prTrue_probCompLift` transports that into
 `prTrue (probCompLift ·)`.
 
 ## Main definitions
@@ -161,58 +161,54 @@ theorem argumentSoundness_amplify {Adv₁ Adv₂ : Type*}
 
 /-! ## Transfer from VCVio probability bounds
 
-These connect `ArgumentSoundness` to `ProbComp`-level bounds (VCVio `probOutput`
-/ `probEvent`). The lift is the VCVio bridge's `probCompLift`; the key identity
-is `prTrue_probCompLift`. -/
+These connect `ArgumentSoundness` to `ProbComp`-level bounds stated with VCVio's
+output measure `𝒟[·]` and event probability `Pr{…}[…]`. The lift is the VCVio
+bridge's `probCompLift`; the key identity is `prTrue_probCompLift`. -/
 
 open CatCrypt.Crypto.VCVioBridge
 
 /-- `ArgumentSoundness` of a `probCompLift`ed game is equivalent to the
-    per-adversary bound `Pr[= true | game A] ≤ ε` on the `ProbComp Bool` game. -/
+    per-adversary bound `𝒟[game A] {true} ≤ ε` on the `ProbComp Bool` game. -/
 theorem argumentSoundness_probCompLift_iff {Adv : Type*}
     (game : Adv → ProbComp Bool) {ε : ℝ≥0∞} :
     ArgumentSoundness ε (fun A => probCompLift (game A)) ↔
-      ∀ A, Pr[= true | game A] ≤ ε := by
+      ∀ A, 𝒟[game A] {true} ≤ ε := by
   simp only [ArgumentSoundness, prTrue_probCompLift]
 
-/-- A per-adversary `Pr[= true | game A] ≤ ε` bound on a `ProbComp Bool` game
+/-- A per-adversary `𝒟[game A] {true} ≤ ε` bound on a `ProbComp Bool` game
     lifts to `ArgumentSoundness` of the `probCompLift`ed game. -/
 theorem argumentSoundness_probCompLift {Adv : Type*}
     (game : Adv → ProbComp Bool) {ε : ℝ≥0∞}
-    (h : ∀ A, Pr[= true | game A] ≤ ε) :
+    (h : ∀ A, 𝒟[game A] {true} ≤ ε) :
     ArgumentSoundness ε (fun A => probCompLift (game A)) :=
   (argumentSoundness_probCompLift_iff game).2 h
 
-/-- A per-adversary `probEvent` bound `Pr[pred | exec A] ≤ ε` on a `ProbComp`
+/-- A per-adversary event bound `Pr{let b ← exec A}[pred b] ≤ ε` on a `ProbComp`
     execution lifts to `ArgumentSoundness` of the `Bool`-valued, `probCompLift`ed
     execution. -/
 theorem argumentSoundness_of_probEvent {Adv : Type*} {β : Type}
     (pred : β → Prop) [DecidablePred pred]
     (exec : Adv → ProbComp β) {ε : ℝ≥0∞}
-    (h : ∀ A, Pr[pred | exec A] ≤ ε) :
+    (h : ∀ A, Pr{let b ← exec A}[pred b] ≤ ε) :
     ArgumentSoundness ε
       (fun A => probCompLift ((fun b => decide (pred b)) <$> exec A)) := by
   refine argumentSoundness_probCompLift _ (fun A => ?_)
-  have hpred : Pr[= true | (fun b => decide (pred b)) <$> exec A] = Pr[pred | exec A] := by
-    rw [← probEvent_true_eq_probOutput, probEvent_map]
-    congr 1
-    funext b
-    simp [Function.comp, decide_eq_true_eq]
+  have hpred : 𝒟[(fun b => decide (pred b)) <$> exec A] {true} =
+      Pr{let b ← exec A}[pred b] := by
+    rw [← prEvent_eq_evalDist_singleton, prEvent_map]; simp
   rw [hpred]
   exact h A
 
 /-- The probability of an event `p` in an `OptionT` computation equals the
-    probability that the underlying computation returns `some a` with `p a`,
-    written as `Pr[= true | ·]` of the `Bool`-valued map in which failure
-    (`none`) is sent to `false`. -/
+    mass at `true` of the `Bool`-valued map of the underlying computation in
+    which failure (`none`) is sent to `false` and `some a` to `decide (p a)`. -/
 theorem probEvent_optionT_eq_probOutput_any {m : Type → Type} [Monad m] [LawfulMonad m]
-    [MonadLiftT m SPMF] [LawfulMonadLiftT m SPMF] {α : Type}
+    [EvalDistSemantics m] [LawfulEvalDistSemantics m] {α : Type}
     (mx : OptionT m α) (p : α → Prop) [DecidablePred p] :
-    Pr[p | mx] = Pr[= true | (fun o : Option α => o.any (fun a => decide (p a))) <$> mx.run] := by
-  rw [← probEvent_true_eq_probOutput, probEvent_map]
-  simp only [probEvent_eq_tsum_indicator, OptionT.probOutput_eq,
-    tsum_option _ ENNReal.summable, Set.indicator_apply]
-  simp
+    Pr{let a ← mx}[p a] =
+      𝒟[(fun o : Option α => o.any (fun a => decide (p a))) <$> mx.run] {true} := by
+  rw [← prEvent_eq_evalDist_singleton, prEvent_map, OptionT.prEvent_eq_run]
+  exact prEvent_congr _ _ _ fun o => by cases o <;> simp
 
 /-! ## Transfer from ArkLib's `Verifier.soundness`
 

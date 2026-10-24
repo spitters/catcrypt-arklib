@@ -20,7 +20,7 @@ declarations live in the namespace `CatCrypt.Crypto.Bridges.ArkLib`.
 | Soundness predicates | `ArgumentSoundness ε game`: every adversary `A` has `prTrue (game A) Heap.empty ≤ ε`. `KnowledgeSoundness`: one extractor for all adversaries (∃E ∀A). `WeakKnowledgeSoundness`: an extractor per adversary (∀A ∃E). `KnowledgeSoundness.toWeak` |
 | Monotonicity | `argumentSoundness_mono`, `knowledgeSoundness_mono` |
 | Composition | `argumentSoundness_reduce` (a per-adversary reduction inequality transfers the bound), `argumentSoundness_add_reduce` (a game bounded by the sum of two reduced games has error `ε₁ + ε₂`), `argumentSoundness_amplify` (a game bounded by `q` times a reduced game has error `q * ε`). The reduction inequalities are hypotheses. |
-| Transfer from VCV-io | `argumentSoundness_probCompLift`: per-adversary bounds `Pr[= true \| game A] ≤ ε` on `ProbComp Bool` games give `ArgumentSoundness` of the lifted games. `argumentSoundness_of_probEvent`: per-adversary bounds `Pr[pred \| exec A] ≤ ε` on `ProbComp` executions give `ArgumentSoundness` of the lifted, `Bool`-valued executions. |
+| Transfer from VCV-io | `argumentSoundness_probCompLift_iff`: `ArgumentSoundness ε` of the lifted games holds iff `𝒟[game A] {true} ≤ ε` for every adversary `A` (`ProbComp Bool` games, VCV-io's measure semantics). `argumentSoundness_of_probEvent`: per-adversary bounds `Pr{let b ← exec A}[pred b] ≤ ε` on `ProbComp` executions give `ArgumentSoundness` of the lifted, `Bool`-valued executions. |
 | Transfer from ArkLib | `verifierSoundness_iff_argumentSoundness`: ArkLib's `Verifier.soundness init impl langIn langOut verifier ε` holds iff `ArgumentSoundness ε` holds for the game `verifierSoundnessGame`, in which the adversary (`VerifierSoundnessAdv`: a prover, a witness and an input statement outside `langIn`) runs ArkLib's interaction and wins when the verifier outputs a statement in `langOut`; a failed run counts as a loss. `argumentSoundness_of_verifierSoundness` is the forward direction. `probEvent_optionT_eq_probOutput_any` turns ArkLib's `OptionT ProbComp` event into a `ProbComp Bool` output. `verifierSoundness_mono`: monotonicity in the error bound. |
 
 Adversary types are `Type*`, because ArkLib's provers live in `Type 1`.
@@ -42,14 +42,14 @@ The package declares no axioms and uses no `native_decide`.
 
 Pinned in `lakefile.lean` and `lake-manifest.json`:
 
-- [CatCrypt Core](https://github.com/spitters/CatCrypt-core) at commit `2adfac7`
-- [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio) at commit `75e2e38`
-- [ArkLib](https://github.com/Verified-zkEVM/ArkLib) at commit `dca90385fb`
-- [VCV-io](https://github.com/Verified-zkEVM/VCV-io), at the revision resolved
-  through ArkLib and catcrypt-vcvio (`f9dc47d9da` in `lake-manifest.json`)
-- [Mathlib](https://github.com/leanprover-community/mathlib4) `v4.33.1`
+- [CatCrypt Core](https://github.com/spitters/CatCrypt-core) at branch `lean-upgrade-4.35`
+- [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio) at branch `lean-upgrade-4.35`
+- [ArkLib](https://github.com/Verified-zkEVM/ArkLib) at commit `d023c5d31d`
+- [VCV-io](https://github.com/Verified-zkEVM/VCV-io), at the revision ArkLib pins
+  (`88efe971`, tag `v4.35.0`)
+- [Mathlib](https://github.com/leanprover-community/mathlib4) `v4.35.0`
 
-Toolchain: `leanprover/lean4:v4.33.1` (see `lean-toolchain`).
+Toolchain: `leanprover/lean4:v4.35.0` (see `lean-toolchain`).
 
 ## Build
 
