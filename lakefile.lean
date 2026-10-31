@@ -32,7 +32,7 @@ require catcryptVcvio from git
   "https://github.com/spitters/catcrypt-vcvio.git" @ "lean-upgrade-4.35"
 
 require ArkLib from git
-  "https://github.com/Verified-zkEVM/ArkLib" @ "d023c5d31d7611ad772588b2da3286a7f3f0628b"
+  "https://github.com/Verified-zkEVM/ArkLib" @ "bc367f8d53f603a48c5502e1ad7d39b7b3be725c"
 
 -- mathlib last so its pinned transitive deps win, matching the shared olean cache.
 require mathlib from git
