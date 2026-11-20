@@ -26,14 +26,14 @@ lean_lib CatCryptArkLib where
   globs := #[.one `CatCryptArkLib]
 
 require catcryptCore from git
-  "https://github.com/spitters/CatCrypt-core.git" @ "lean-upgrade-4.35"
+  "https://github.com/spitters/CatCrypt-core.git" @ "lean-upgrade-4.36"
 
 require catcryptVcvio from git
-  "https://github.com/spitters/catcrypt-vcvio.git" @ "lean-upgrade-4.35"
+  "https://github.com/spitters/catcrypt-vcvio.git" @ "lean-upgrade-4.36"
 
 require ArkLib from git
-  "https://github.com/Verified-zkEVM/ArkLib" @ "bc367f8d53f603a48c5502e1ad7d39b7b3be725c"
+  "https://github.com/Verified-zkEVM/ArkLib" @ "608f550b89b881cc1c9c6c32825fcc61b53c96ab"
 
 -- mathlib last so its pinned transitive deps win, matching the shared olean cache.
 require mathlib from git
-  "https://github.com/leanprover-community/mathlib4" @ "v4.35.0"
+  "https://github.com/leanprover-community/mathlib4" @ "v4.36.0"
