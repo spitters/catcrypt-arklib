@@ -26,10 +26,10 @@ lean_lib CatCryptArkLib where
   globs := #[.one `CatCryptArkLib]
 
 require catcryptCore from git
-  "https://github.com/spitters/CatCrypt-core.git" @ "lean-upgrade-4.36"
+  "https://github.com/spitters/CatCrypt-core.git" @ "main"
 
 require catcryptVcvio from git
-  "https://github.com/spitters/catcrypt-vcvio.git" @ "lean-upgrade-4.36"
+  "https://github.com/spitters/catcrypt-vcvio.git" @ "master"
 
 require ArkLib from git
   "https://github.com/Verified-zkEVM/ArkLib" @ "608f550b89b881cc1c9c6c32825fcc61b53c96ab"

@@ -46,8 +46,8 @@ output statement lies in `langOut`. ArkLib's bound is an event probability
 
 * `ArgumentSoundness` — all adversaries succeed with prob ≤ ε
 * `KnowledgeSoundness` — ∃ universal extractor. ∀ adversary. extraction fails ≤ ε
-* Reduction composition: `argumentSoundness_reduce`, `argumentSoundness_add_reduce`,
-  `argumentSoundness_amplify`
+* Reduction composition: `argumentSoundness_reduce`, `prTrue_le_add_reduce`,
+  `argumentSoundness_add_reduce`, `argumentSoundness_amplify`
 * `VerifierSoundnessAdv`, `verifierSoundnessGame` — ArkLib's soundness experiment
   as a CatCrypt game
 * `verifierSoundness_iff_argumentSoundness`, `argumentSoundness_of_verifierSoundness`
@@ -133,8 +133,26 @@ theorem argumentSoundness_reduce {Adv₁ Adv₂ : Type*}
     ArgumentSoundness ε game₂ :=
   fun A => le_trans (h_reduce A) (h (reduce A))
 
-/-- Additive composition via reductions: game reduces to sum of two sub-games.
-    This captures BCS-style composition (IOR error + binding error). -/
+/-- Additive composition, per adversary: if `game` is bounded by the sum of `game₁` at
+    `reduce₁ A` and `game₂` at `reduce₂ A`, and `game₁` has error `ε₁` for every adversary,
+    then `A` wins `game` with probability at most `ε₁` plus the success probability of the
+    explicit adversary `reduce₂ A` in `game₂`. This is the form for a computational `game₂`
+    (the binding game of a commitment scheme in BCS-style composition), where a bound over
+    all adversaries does not hold; `ε₁` is the information-theoretic error of the IOR. -/
+theorem prTrue_le_add_reduce {Adv Adv₁ Adv₂ : Type*}
+    {game : Adv → SPComp Bool} {game₁ : Adv₁ → SPComp Bool} {game₂ : Adv₂ → SPComp Bool}
+    {ε₁ : ℝ≥0∞}
+    (reduce₁ : Adv → Adv₁) (reduce₂ : Adv → Adv₂)
+    (h_sum : ∀ A, prTrue (game A) CatCrypt.Core.Heap.empty ≤
+      prTrue (game₁ (reduce₁ A)) CatCrypt.Core.Heap.empty + prTrue (game₂ (reduce₂ A)) CatCrypt.Core.Heap.empty)
+    (h₁ : ArgumentSoundness ε₁ game₁) (A : Adv) :
+    prTrue (game A) CatCrypt.Core.Heap.empty ≤
+      ε₁ + prTrue (game₂ (reduce₂ A)) CatCrypt.Core.Heap.empty :=
+  le_trans (h_sum A) (add_le_add_left (h₁ _) _)
+
+/-- Additive composition via reductions: game reduces to sum of two sub-games, both
+    bounded for every adversary. For a computational `game₂` the hypothesis `h₂` does not
+    hold; use `prTrue_le_add_reduce` there. -/
 @[aesop safe apply]
 theorem argumentSoundness_add_reduce {Adv Adv₁ Adv₂ : Type*}
     {game : Adv → SPComp Bool} {game₁ : Adv₁ → SPComp Bool} {game₂ : Adv₂ → SPComp Bool}

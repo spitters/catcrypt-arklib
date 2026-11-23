@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- `prTrue_le_add_reduce`: additive composition with a per-adversary bound,
+  `ε₁` plus the success of the explicit adversary `reduce₂ A` in the second game,
+  for a computational second game.
+- Lean 4.36, ArkLib `608f550b89`.
+
+## 0.1.0-alpha.1
+
 Initial release of the ArkLib interoperability package for CatCrypt Core
 (Lean 4.33.1, Mathlib `v4.33.1`, ArkLib `dca90385fb`, catcrypt-vcvio).
 

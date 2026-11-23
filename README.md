@@ -2,73 +2,78 @@
 
 Interoperability between [CatCrypt Core](https://github.com/spitters/CatCrypt-core)
 and [ArkLib](https://github.com/Verified-zkEVM/ArkLib), the Lean 4 formalization of
-interactive oracle reductions (IORs) and SNARKs, in Lean 4. The package states
-argument soundness and knowledge soundness as predicates over CatCrypt `SPComp`
-games, proves composition lemmas for them, and transfers `ProbComp` probability
+interactive oracle reductions (IORs) and SNARKs. The package states argument soundness
+and knowledge soundness as predicates over CatCrypt `SPComp` games, proves composition
+lemmas for them, and transfers ArkLib's verifier soundness and `ProbComp` probability
 bounds into these predicates through
 [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio).
 
-**Documentation:** [API reference](https://spitters.github.io/catcrypt-arklib/)
+The library is the single module `CatCryptArkLib`, with declarations in the namespace
+`CatCrypt.Crypto.Bridges.ArkLib`. The package declares no axioms and uses no
+`native_decide`.
 
-The library is the single module `CatCryptArkLib` (`import CatCryptArkLib`). Its
-declarations live in the namespace `CatCrypt.Crypto.Bridges.ArkLib`.
+## Soundness predicates
 
-## Contents
+A family of games indexed by adversaries has argument soundness with error `ε` when every
+adversary wins with probability at most `ε`
+([`ArgumentSoundness`](CatCryptArkLib.lean#L82)). Knowledge soundness asks for one
+extractor that works for every adversary
+([`KnowledgeSoundness`](CatCryptArkLib.lean#L89)), the quantifier order of ArkLib's
+definition; it implies the weaker form with an extractor per adversary
+([`KnowledgeSoundness.toWeak`](CatCryptArkLib.lean#L100)). Both predicates are monotone in
+the error ([`argumentSoundness_mono`](CatCryptArkLib.lean#L108),
+[`knowledgeSoundness_mono`](CatCryptArkLib.lean#L113)). Adversary types range over all
+universes, because ArkLib's provers live in `Type 1`.
 
-| Group | Main definitions and theorems |
-|---|---|
-| Soundness predicates | `ArgumentSoundness ε game`: every adversary `A` has `prTrue (game A) Heap.empty ≤ ε`. `KnowledgeSoundness`: one extractor for all adversaries (∃E ∀A). `WeakKnowledgeSoundness`: an extractor per adversary (∀A ∃E). `KnowledgeSoundness.toWeak` |
-| Monotonicity | `argumentSoundness_mono`, `knowledgeSoundness_mono` |
-| Composition | `argumentSoundness_reduce` (a per-adversary reduction inequality transfers the bound), `argumentSoundness_add_reduce` (a game bounded by the sum of two reduced games has error `ε₁ + ε₂`), `argumentSoundness_amplify` (a game bounded by `q` times a reduced game has error `q * ε`). The reduction inequalities are hypotheses. |
-| Transfer from VCV-io | `argumentSoundness_probCompLift_iff`: `ArgumentSoundness ε` of the lifted games holds iff `𝒟[game A] {true} ≤ ε` for every adversary `A` (`ProbComp Bool` games, VCV-io's measure semantics). `argumentSoundness_of_probEvent`: per-adversary bounds `Pr{let b ← exec A}[pred b] ≤ ε` on `ProbComp` executions give `ArgumentSoundness` of the lifted, `Bool`-valued executions. |
-| Transfer from ArkLib | `verifierSoundness_iff_argumentSoundness`: ArkLib's `Verifier.soundness init impl langIn langOut verifier ε` holds iff `ArgumentSoundness ε` holds for the game `verifierSoundnessGame`, in which the adversary (`VerifierSoundnessAdv`: a prover, a witness and an input statement outside `langIn`) runs ArkLib's interaction and wins when the verifier outputs a statement in `langOut`; a failed run counts as a loss. `argumentSoundness_of_verifierSoundness` is the forward direction. `probEvent_optionT_eq_probOutput_any` turns ArkLib's `OptionT ProbComp` event into a `ProbComp Bool` output. `verifierSoundness_mono`: monotonicity in the error bound. |
+## Composition
 
-Adversary types are `Type*`, because ArkLib's provers live in `Type 1`.
+If every adversary's success in one game is bounded by the success of a reduced adversary
+in a second game, a soundness bound for the second game carries over to the first
+([`argumentSoundness_reduce`](CatCryptArkLib.lean#L128)). If the success in a game is
+bounded by the sum of the successes of two reduced adversaries, and the first game has
+error `ε₁` for every adversary, then each adversary `A` wins with probability at most `ε₁`
+plus the success of the explicit adversary `reduce₂ A` in the second game
+([`prTrue_le_add_reduce`](CatCryptArkLib.lean#L142)). This is the concrete form of
+BCS-style composition, with the information-theoretic error of an IOR and the advantage of
+a reduction against a computational binding game. When both games are bounded for every
+adversary the errors add ([`argumentSoundness_add_reduce`](CatCryptArkLib.lean#L157)); a
+game bounded by `q` times a reduced game has error `q * ε`
+([`argumentSoundness_amplify`](CatCryptArkLib.lean#L171)). The reduction inequalities are
+hypotheses of these theorems.
 
-The package declares no axioms and uses no `native_decide`.
+## Transfer from VCV-io and ArkLib
 
-## What is not included
+For `ProbComp Bool` games lifted into CatCrypt, argument soundness with error `ε` holds if
+and only if the output measure `𝒟[game A] {true}` is at most `ε` for every adversary
+([`argumentSoundness_probCompLift_iff`](CatCryptArkLib.lean#L190)); per-adversary bounds
+`Pr{let b ← exec A}[pred b] ≤ ε` on `ProbComp` executions give argument soundness of the
+lifted `Bool`-valued executions
+([`argumentSoundness_of_probEvent`](CatCryptArkLib.lean#L207)).
 
-- A transfer from ArkLib's `Verifier.knowledgeSoundness` into
-  `KnowledgeSoundness`; the CatCrypt predicate uses the same quantifier order
-  (∃E ∀A) and is not formally related to ArkLib's.
-- Soundness theorems for the BCS transformation or the Fiat–Shamir transformation.
-  `argumentSoundness_add_reduce` and `argumentSoundness_amplify` are the
-  composition shapes such theorems take; the reduction inequalities are supplied
-  by the caller.
-- Theorems about specific IORs, polynomial commitment schemes or SNARKs.
+ArkLib's `Verifier.soundness init impl langIn langOut verifier ε` holds if and only if
+argument soundness with error `ε` holds for an explicit game
+([`verifierSoundness_iff_argumentSoundness`](CatCryptArkLib.lean#L289)). In that game
+([`verifierSoundnessGame`](CatCryptArkLib.lean#L281)) the adversary
+([`VerifierSoundnessAdv`](CatCryptArkLib.lean#L251)) is a cheating prover with a witness
+and an input statement outside `langIn`; it runs ArkLib's interaction and wins when the
+verifier outputs a statement in `langOut`, and a failed run counts as a loss. ArkLib's
+event over an `OptionT ProbComp` execution equals the output probability of `true` in a
+`ProbComp Bool` computation in which failure maps to `false`
+([`probEvent_optionT_eq_probOutput_any`](CatCryptArkLib.lean#L223)).
 
-## Dependencies
+## Further reading
 
-Pinned in `lakefile.lean` and `lake-manifest.json`:
-
-- [CatCrypt Core](https://github.com/spitters/CatCrypt-core) at branch `lean-upgrade-4.35`
-- [catcrypt-vcvio](https://github.com/spitters/catcrypt-vcvio) at branch `lean-upgrade-4.35`
-- [ArkLib](https://github.com/Verified-zkEVM/ArkLib) at commit `d023c5d31d`
-- [VCV-io](https://github.com/Verified-zkEVM/VCV-io), at the revision ArkLib pins
-  (`88efe971`, tag `v4.35.0`)
-- [Mathlib](https://github.com/leanprover-community/mathlib4) `v4.35.0`
-
-Toolchain: `leanprover/lean4:v4.35.0` (see `lean-toolchain`).
-
-## Build
-
-`lake build` builds the default target, the `CatCryptArkLib` library. See
-[BUILDING.md](BUILDING.md).
-
-## Documentation
-
-- **API reference:** [doc-gen4](https://spitters.github.io/catcrypt-arklib/)
-- **Changelog:** [CHANGELOG.md](CHANGELOG.md) ·
-  **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) ·
-  **Third-party notices:** [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- [API reference](https://spitters.github.io/catcrypt-arklib/) (doc-gen4)
+- [BUILDING.md](BUILDING.md): building the library and the documentation
+- [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md),
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
 ## References
 
 - E. Ben-Sasson, A. Chiesa, N. Spooner. *Interactive Oracle Proofs.* TCC 2016.
 - [ArkLib](https://github.com/Verified-zkEVM/ArkLib),
-  `ArkLib/OracleReduction/Security/Basic.lean` — the soundness definitions this
-  package refers to.
+  `ArkLib/OracleReduction/Security/Basic.lean`: the soundness definitions this package
+  refers to.
 
 ## Citing
 

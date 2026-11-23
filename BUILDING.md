@@ -2,8 +2,8 @@
 
 ## The library
 
-Requires [elan](https://github.com/leanprover/elan). The pinned toolchain is
-`leanprover/lean4:v4.33.1` (see `lean-toolchain`).
+Requires [elan](https://github.com/leanprover/elan), which installs the toolchain
+named in `lean-toolchain`.
 
 `lakefile.lean` requires CatCrypt Core, catcrypt-vcvio, ArkLib and Mathlib from git at
 the commits recorded in `lake-manifest.json`. From the repository root:
